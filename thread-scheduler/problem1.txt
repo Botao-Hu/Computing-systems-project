@@ -1,0 +1,13 @@
+Problem 1
+===============================================================================
+In running fibtest program, we see that the consumer keeps printing the results
+from producer 0, and results from producer 1 are not printed at all.
+
+The unfairness comes from the execution strategy. When the program starts, 
+producer 0 is the first to run, and it will yeild when the bounded buffer is
+full. The scheduler then draws the next thread in the ready queue - producer 1
+and let it run. Sadly, producer 1 can't do anything because the buffer is full,
+so it immediately yeilds to consumer 0. After consumer 0 clears the buffer, the
+scheduler would take producer 0, which is at the top of the ready queue, for
+execution. In this loop, producer 1 would never be effective since every time
+when it is called, the buffer is full.
