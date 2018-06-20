@@ -1,0 +1,16 @@
+Answer for invoking getVolume() function
+-------------------------------------------------------------------------------
+#   %r8 = address of a object in Shape subclass
+
+movq    %r8, %rdi       # get the address of class pointer in Data struct,
+                        # which corresponds to (xx_Data *this), and should
+                        # be the argument for getVolume()
+
+movq    (%rdi), %r8     # get the function pointer (i.e the address of the
+                        # function entrance) of getVolume() inside the Class 
+                        # struct, and store it in %r8
+
+call    (%r8)           # call getVolume() function, now stack pointer goes 
+                        # into instructions in that function, and the result 
+                        # is stored in %rax when returned
+
