@@ -1,0 +1,49 @@
+Answer for Explicit-Allocator Robustness
+----------------------------------------
+(a) 
+If myfree() is called on an address that did not originate from myalloc(),
+my program would assume that address is inside the memory region, and start
+to free the memory block - changing headers, footers and free list.
+The potential risk is that the address may point to other spaces which is
+used by other users, and the allocator would destroy their record. More
+importantly, the address may jump beyond the whole memory pool of the
+allocator, then my program may destroy the whole system.
+
+If myfree() is called on an address that is contained within a memory block,
+my program would add some offset to that address, and retrieves the "header",
+(which may be not the real header if the address is in the middle of the block)
+of the block, then free it. The potential risk is that the header is not
+actually a header, just some memory region in the block, so the allocator would
+not get the correct size information. Then the allocator might lose control
+to the memory region - e.g. weird free list, wrong memory data, etc.
+
+If myfree() is called on an address that has already been freed, my program
+would examine the size of the block header. If the size is positive (indicating
+free block) my program would print "Hey, you are freeing a freed block", but
+still go on freeing that block. The potential risk is that for explicit free
+list, freeing a block twice will lead to two same copies of free block in the
+list, that is, this block may be allocated to two different users in the same
+time, which will be a severe issue of data leakage.
+
+(b)
+When an address passes in through myfree(), the program would do the following:
+1. Check if the address is inside the whole memory pool of the allocator, 
+   by comparing the address with mem (starting point of the pool) and 
+   mem + MEMORY_SIZE. If not, raise error "out of the memory pool" and exit.
+2. Check if the address is inside the memory allocated to that user. It is a
+   bit harder, maybe we can ask myfree to pass two addresses, including the
+   original address given out by the allocator. Inside myfree(), the program
+   can force both addresses equal, which sort of ensures that the address is
+   within the memory. But if the user is tricky, he might simply pass in two
+   identical addresses.
+3. Check if the address is really pointing to a header (or with some fixed 
+   offset). To solve this, we can add some "pre-code" to the header, for
+   example, put a char array of "header" at the start of every header. In this
+   way, the program can identify whether a header is really a header or not.
+   If not header, raise error.
+4. Check if the memory block is free. This can be achieved by looking at the
+   size value of the header (positive indicating free, negative indicating
+   occupied). If the value is positive, raise error.
+
+
+
