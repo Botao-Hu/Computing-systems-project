@@ -1,0 +1,69 @@
+Answers to HW8 Questions
+========================
+
+a)  How to detect when a page is accessed?
+
+When the page is mapped into process' virtual address space, use mmap() to
+initialize its permission value as PROT_NONE. In this way, whenever some
+program A tries to access this virtual space, a segfault will be generated.
+Then, inside the signal handler, we can set up an accessed_flag indicating 
+this page is accessed for at least once, and call mprotect() to set its
+permission to PROT_READ, and ask program A to access this page again.
+
+
+b)  How to detect when a page becomes dirty?
+
+We use the similar strategy. After the process in problem (a), the permission
+value of this page becomes PROT_READ, and if some program B tries to modify
+(i.e., write to) this memory, another segfault will be generated. Then, inside
+the signal handler, we can set up an dirty_flag indicating this page is 
+dirty, and call mprotect() to set its permission to PROT_READ | PROT_WRITE, and
+ask program B to access this page again.
+
+
+f)  Page-load rate of "test_matrix -m 1024 1000" using RANDOM policy:
+
+I run this for once (didn't compute average), and got total page loads: 53058.
+
+
+g)  Page Replacement Policy #1 (fill in the information below)
+
+Name of policy you chose to implement:  The CLOCK policy
+
+Below, give the command-line for invoking the matrix-test program for a
+1000x1000 matrix, with a maximum of 1024 resident pages.  (If multiple
+steps are required, list them all here.)
+
+  >>> ./test_matrix_clock -m 1024 1000
+
+Give the resulting page-load rate of the above command:  47944
+
+If you have any additional information to share about your policy, please
+share it here.  Please keep your comments brief; you don't need to repeat
+what the assignment says about the policy here.
+
+
+h)  Page Replacement Policy #2 (if you implemented two policies)
+
+Name of policy you chose to implement:  The AGING policy (8 bit age)
+
+Below, give the command-line for invoking the matrix-test program for a
+1000x1000 matrix, with a maximum of 1024 resident pages.  (If multiple
+steps are required, list them all here.)
+
+  >>> ./test_matrix_age -m 1024 1000
+
+Give the resulting page-load rate of the above command:  6718
+
+If you have any additional information to share about your policy, please
+share it here.  Please keep your comments brief; you don't need to repeat
+what the assignment says about the policy here.
+
+*** AGING policy analysis ***
+By changing the size of age value, we see:
+AGING policy with 8 bit age value has 6718 total page loads;
+AGING policy with 16 bit age value has 6725 total page loads;
+AGING policy with 32 bit age value has 6743 total page loads.
+We can see the page loads rates are almost identical with different size
+of age values.
+
