@@ -1,0 +1,11 @@
+What does the assembly code do?
+-------------------------------
+Suppose the bit width is 64, then we have:
+
+line 1: move x into rax
+line 2: rax = (3x) mod 2^64
+line 3: rax = (3x + 12) mod 2^64
+line 4: rax = (3x^2 + 12x) mod 2^64
+line 5: rax = (3x^2 + 12x - 17) mod 2^64
+
+So, the final result in rax is (3x^2 + 12x - 17) mod 2^64.

@@ -1,0 +1,86 @@
+Bugs in rl_decode() function:
+-----------------------------
+
+Initial Test
+------------
+First of all I ran test_rldec and got Segmentation fault (core dumped).
+
+Bug I
+-----
+In code scanning, in find_space_loop I saw the following command
+
+add     (%rdi, %rcx), %bl         # Add in the count, then move
+add     $1, %rcx                  # forward to the next count!
+
+We know that the compressed code has the pattern like "5A4I7E3!". In order
+to get the space for decoded data, we should add up the counts and leave out
+the chars. However, the code is apparently adding those chars by setting
+the increment as 1 byte. I fixed it by setting a 2 byte increment.
+
+add     (%rdi, %rcx), %bl         # Add in the count, then move
+add     $2, %rcx                  # forward to the next count!
+
+Bug II
+------
+Again, in code scanning, in write_loop I saw a weird loop:
+
+write_loop:
+        mov     %bl, (%rax, %r10)
+        dec     %bh
+        jnz     write_loop
+
+In this loop, the code keeps doing the same thing, since the values of 
+%bl, %rax, and %r10 are not changed. Since we are writing the same char
+for a lot of times, we should also change the address where we write into.
+In this way, I fixed the bug by adding one command changing %r10:
+
+write_loop:
+        mov     %bl, (%rax, %r10)   
+        inc     %r10
+        dec     %bh
+        jnz     write_loop
+
+Bug III
+-------
+After fixing Bug I and Bug II, I started gdb to debug. I found that after
+malloc call, the value of %esi dramatically changed (It should be the input
+length). And I noticed that this code didn't store some caller saved
+registers, and malloc might change them, so I pushed those registers into
+the stack.
+
+        push    %rdi
+        push    %rsi
+        push    %rdx
+        mov     %rbx, %rdi         # Number of bytes to allocate...
+        call    malloc
+        pop     %rdx
+        pop     %rsi
+        pop     %rdi
+
+Bug IV
+------
+I thought it is good to simply run the test code after fixing three bugs.
+However, the code passed the first three cases, and get weird error in
+the rest ones. Then I noticed that in find_space_loop, we did
+
+add     (%rdi, %rcx), %bl
+
+which would cause overflow since we only add in one byte (max 255). So,
+I have a better version in int size, which takes r10 as a temporary holder
+of the one-byte count (unsigned), and do the addition in int size with %rbx.
+The solution is:
+
+mov     $0, %r10                  # set r10 to be zero in declaration
+
+...
+
+movzbl  (%rdi, %rcx), %r10d
+add     %r10d, %rbx               # Add in the count, then move
+add     $2, %rcx                  # forward to the next count!
+
+Then I passed all the test cases (including bmp case).
+
+
+
+
+

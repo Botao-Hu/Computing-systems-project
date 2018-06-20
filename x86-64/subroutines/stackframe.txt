@@ -1,0 +1,13 @@
+Stack Contents of fact(3)
+-------------------------
+
+Address     Value       Description
+--------    --------    ------------------------------------
+0x1008      ????        We know nothing about this part
+0x1000      ????        Ret addr of outside call
+0x0FF8      0x3         in fact(3), the value of %rdi in [pushq %rdi]
+0x0FF0      0x2020      in fact(3), Ret addr of [call fact(2)]: fact_resume
+0x0FE8      0x2         in fact(2), the value of %rdi in [pushq %rdi]  
+0x0FE0      0x2020      in fact(2), Ret addr of [call fact(1)]: fact_resume
+0x0FD8      0x1         in fact(1), the value of %rdi in [pushq %rdi]  
+0x0FD0      0x2020      in fact(1), Ret addr of [call fact(0)]: fact_resume

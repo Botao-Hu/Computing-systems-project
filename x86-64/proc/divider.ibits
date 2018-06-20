@@ -1,0 +1,18 @@
+# Registers:
+# R0: dividend
+# R1: divisor
+# R2: a temporary recorder (might change after execution but does not matter)
+# R3 = 80 00 00 00(16)
+# R4 = FF FF FF FF(16)
+# R6: quotient
+# R7: remainder
+
+0bb6 # 0010 1 110 110 110, R6<-R6-R6  -- set quotient to 0
+2227 # 1000 1 000 100 111, R7<-R0&R4  -- set remainder to be the devidend
+0bcf # 0010 1 111 001 111, LOOP (2): R7<-R7-R1  -- starting while loop
+22fa # 1000 1 011 111 010, R2<-R3&R7  -- R3 = 80 00 00 00 (16), if R3 does not change, the remainder is negative
+2887 # 1010 0 010 000 111, BNZ R2 7   -- jump out of the loop
+1786 # 0101 1 110 000 110, R6<-R6+1   -- increment quotient
+2902 # 1010 0 100 000 010, BNZ R4 2   -- R4 is a non-zero number, force to go back to the loop
+03cf # 0000 1 111 001 111, SKIP (7): R7<-R7+R1  -- remainder = remainder + divisor
+3c00 # 1111 0 000 000 000, done       -- finished, exit leaving results in R6, R7

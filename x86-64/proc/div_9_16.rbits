@@ -1,0 +1,17 @@
+# Registers:
+# R0: dividend
+# R1: divisor
+# R2: a temporary recorder (might change after execution but does not matter)
+# R3 = 80 00 00 00(16)
+# R4 = FF FF FF FF(16)
+# R6: quotient
+# R7: remainder
+
+9
+10
+0
+80000000
+FFFFFFFF
+0
+0
+0

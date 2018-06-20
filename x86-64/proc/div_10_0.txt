@@ -1,0 +1,1 @@
+In calculating 10/0, the program basically stucks inside the dead while loop since the remainder does not change and remains positive when we substract 0 from it. As a result, the program throws an error indicating max execute time reached after a long time of execution.

@@ -1,0 +1,9 @@
+Answers to Practice Problem 3.6, CS:APP3e pp.192-193
+----------------------------------------------------
+Result: (in top-down order)
+x + 6
+x + y
+x + 4y
+9x + 7
+4y + 10 (in decimal)
+x + 2y + 9

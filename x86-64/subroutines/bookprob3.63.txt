@@ -1,0 +1,36 @@
+Answer to Problem 3.63, CS:APP3e pp.314-315
+-------------------------------------------
+In line 2 the program substracts 60 from n, and then checks if n < 60 or n > 65. If so, line 4 would lead the program to default instruction address, which is 0x4005c3. Then, in line 5 there is a jump table, by checking with the byte values starting from address 0x4006f8 we can figure out the switching table:
+
+n < 60 or n > 65 or n = 61 goes to 0x40053
+n = 60 or n = 62 goes to 0x4005a1
+n = 63 goes to 0x4005aa
+n = 64 goes to 0x4005b2
+n = 65 goes to 0x4005bf
+
+After that, we can translate assembly code in each instruction address in the table above, (the code basically changes x), and take care of return statement. In this way we can fill out the C code.
+
+I'll just fill in the switch statement.
+
+switch(n) {
+
+    case 60:
+    case 62:
+        result *= 8;
+        break;
+
+    case 63:
+        result = result >> 3;
+        break;
+
+    case 64:
+        result = result << 4 - result;
+
+    case 65:
+        result *= val;
+
+    case 61:
+    default:
+        result += 75;
+}
+
