@@ -1,0 +1,23 @@
+Measurements and Replacement Policy
+------------------------------------------------------------------------------
+Random replacement policy:
+
+(d) Directed-mapped cache:
+    Command-line invocation: ./heaptest 32:256:1
+    Cache miss-rate: 2.40%
+
+(e) Fully associative cache:
+    Command-line invocation: ./heaptest 32:1:256
+    Cache miss-rate: 2.45%
+
+Least recently used policy:
+
+(d) Directed-mapped cache:
+    Command-line invocation: ./heaptest 32:256:1
+    Cache miss-rate: 2.40%
+
+(e) Fully associative cache:
+    Command-line invocation: ./heaptest 32:1:256
+    Cache miss-rate: 2.26%
+
+

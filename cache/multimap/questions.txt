@@ -1,0 +1,176 @@
+Multimap Caching Performance
+============================
+
+a)  Size of hardware cache lines: 
+
+64 bytes.
+
+
+b)  Output of mmperf:
+
+Testing multimap performance:  300000 pairs, 1000000 probes, random keys.
+Adding 300000 randomly generated pairs to multimap.
+Keys in range [0, 50), values in range [0, 1000).
+Probing multimap 1000000 times with randomly generated test-pairs.
+Keys in range [0, 50), values in range [0, 1000).
+997144 out of 1000000 test-pairs were in the map (99.7%)
+Total wall-clock time:  27.63 seconds		μs per probe:  27.626 μs
+
+Testing multimap performance:  300000 pairs, 1000000 probes, incrementing keys.
+Adding 300000 randomly generated pairs to multimap.
+Keys in range [0, 50), values in range [0, 1000).
+Probing multimap 1000000 times with randomly generated test-pairs.
+Keys in range [0, 50), values in range [0, 1000).
+997715 out of 1000000 test-pairs were in the map (99.8%)
+Total wall-clock time:  59.74 seconds		μs per probe:  59.742 μs
+
+Testing multimap performance:  300000 pairs, 1000000 probes, decrementing keys.
+Adding 300000 randomly generated pairs to multimap.
+Keys in range [0, 50), values in range [0, 1000).
+Probing multimap 1000000 times with randomly generated test-pairs.
+Keys in range [0, 50), values in range [0, 1000).
+997325 out of 1000000 test-pairs were in the map (99.7%)
+Total wall-clock time:  56.14 seconds		μs per probe:  56.139 μs
+
+Testing multimap performance:  15000000 pairs, 1000000 probes, random keys.
+Adding 15000000 randomly generated pairs to multimap.
+Keys in range [0, 100000), values in range [0, 50).
+Probing multimap 1000000 times with randomly generated test-pairs.
+Keys in range [0, 100000), values in range [0, 50).
+949586 out of 1000000 test-pairs were in the map (95.0%)
+Total wall-clock time:  7.18 seconds		μs per probe:  7.180 μs
+
+Testing multimap performance:  100000 pairs, 50000 probes, incrementing keys.
+Adding 100000 randomly generated pairs to multimap.
+Keys in range [0, 100000), values in range [0, 50).
+Probing multimap 50000 times with randomly generated test-pairs.
+Keys in range [0, 100000), values in range [0, 50).
+976 out of 50000 test-pairs were in the map (2.0%)
+Total wall-clock time:  198.83 seconds		μs per probe:  3976.645 μs
+
+Testing multimap performance:  100000 pairs, 50000 probes, decrementing keys.
+Adding 100000 randomly generated pairs to multimap.
+Keys in range [0, 100000), values in range [0, 50).
+Probing multimap 50000 times with randomly generated test-pairs.
+Keys in range [0, 100000), values in range [0, 50).
+980 out of 50000 test-pairs were in the map (2.0%)
+Total wall-clock time:  200.81 seconds		μs per probe:  4016.116 μs
+
+
+c)  Explanation of tests:
+
+In the first three tests, keys are in range [0, 50) and values are in range
+[0, 1000). In the last three tests, keys are in range [0, 100000) and values
+are in range [0, 50). In other words, the first three tests have a larger
+pool of values while the last three ones have more diversed keys.
+
+Since keys and values are randomly generated, in the last three tests there
+will be more duplicate values. That is to say, when we are traversing a value
+list to search for a certain value, we are expected to find one in less time
+than we spend in the first three tests (we only need to find the value that is
+closest to the head of the list). So, in the first three tests, we will
+exercise the multimap more on linear list search of each node's value-list.
+
+On the contrary, in the last three tests there will be a much larger binary 
+tree than the first three thanks to more diversed keys, so the binary tree 
+search of the multimap is exercised a lot more.
+
+
+e)  Explanation of your optimizations:
+
+CHANGE I - Value List
+
+Issue: Each time when a new value comes in, the program allocates the object
+       "somewhere" inside the memory. So, for each node, the object in its
+       value-list is discontiguous in memory address, and has bad locality
+       of access for cahing.
+Optimization: I changed the value list structure into an int array. Initially,
+              we allocate for a pool of memory for each node, and each time a
+              new value comes in, we give it the next avaliable int block in
+              the pool. If the pool is full, we allocate a bigger one and move
+              everything in the old pool to the new pool. When we are 
+              traversing the value list, we simply increment the index and go
+              down the int array in contiguous memory.
+Explanation: After the optimization, for each node, its value-list occupies
+             a whole memory block in order, so the list traversal is a stride-1
+             reference pattern and is very cache-friendly. Also, since it is an 
+             int array, it fits well in the cache block size.
+
+
+CHANGE II - Tree Node
+
+Issue: Each time when a new key comes in, the program allocates the node object
+       "somewhere" inside the memory. So, when we are traversing the node tree,
+       we jump from one address to another (may be far away in memory distance)
+       and lower the cache hit rate due to the bad locality.
+Optimization: The idea is basically the same in CHANGE I. We have a pool of
+              memory to store the nodes. We give out blocks of memories in
+              the pool to incoming nodes, and when the pool is full, we
+              allocate a bigger one and move everything in. Also we find
+              the whole data structure more like an array, so we have a
+              global variable tree_head at the start of memory. And each
+              node has a tree_index attribute so that we can access the
+              node using tree_head[tree_index]. The child reference are
+              also changed into int index for simplicity. After the change,
+              each node object is of 32 bytes.
+Explanation: The binary tree traversal is not as cache friendly as array
+             traversal, but it is better to put all the node objects in
+             one object pool to increase locality, than jumping between
+             addresses that are far from each other. Also, for extreme
+             cases like the keys come in incrementing or decrementing
+             order, the tree traversal has the same efficiency as array
+             traversal. What's more, since each node is 32 bytes, it fits
+             well with the cache block size.
+
+
+f)  Output of ommperf:
+
+Testing multimap performance:  300000 pairs, 1000000 probes, random keys.
+Adding 300000 randomly generated pairs to multimap.
+Keys in range [0, 50), values in range [0, 1000).
+Probing multimap 1000000 times with randomly generated test-pairs.
+Keys in range [0, 50), values in range [0, 1000).
+997144 out of 1000000 test-pairs were in the map (99.7%)
+Total wall-clock time:  0.79 seconds		μs per probe:  0.792 μs
+
+Testing multimap performance:  300000 pairs, 1000000 probes, incrementing keys.
+Adding 300000 randomly generated pairs to multimap.
+Keys in range [0, 50), values in range [0, 1000).
+Probing multimap 1000000 times with randomly generated test-pairs.
+Keys in range [0, 50), values in range [0, 1000).
+997715 out of 1000000 test-pairs were in the map (99.8%)
+Total wall-clock time:  0.80 seconds		μs per probe:  0.805 μs
+
+Testing multimap performance:  300000 pairs, 1000000 probes, decrementing keys.
+Adding 300000 randomly generated pairs to multimap.
+Keys in range [0, 50), values in range [0, 1000).
+Probing multimap 1000000 times with randomly generated test-pairs.
+Keys in range [0, 50), values in range [0, 1000).
+997325 out of 1000000 test-pairs were in the map (99.7%)
+Total wall-clock time:  0.85 seconds		μs per probe:  0.854 μs
+
+Testing multimap performance:  15000000 pairs, 1000000 probes, random keys.
+Adding 15000000 randomly generated pairs to multimap.
+Keys in range [0, 100000), values in range [0, 50).
+Probing multimap 1000000 times with randomly generated test-pairs.
+Keys in range [0, 100000), values in range [0, 50).
+949586 out of 1000000 test-pairs were in the map (95.0%)
+Total wall-clock time:  0.60 seconds		μs per probe:  0.602 μs
+
+Testing multimap performance:  100000 pairs, 50000 probes, incrementing keys.
+Adding 100000 randomly generated pairs to multimap.
+Keys in range [0, 100000), values in range [0, 50).
+Probing multimap 50000 times with randomly generated test-pairs.
+Keys in range [0, 100000), values in range [0, 50).
+976 out of 50000 test-pairs were in the map (2.0%)
+Total wall-clock time:  6.96 seconds		μs per probe:  139.262 μs
+
+Testing multimap performance:  100000 pairs, 50000 probes, decrementing keys.
+Adding 100000 randomly generated pairs to multimap.
+Keys in range [0, 100000), values in range [0, 50).
+Probing multimap 50000 times with randomly generated test-pairs.
+Keys in range [0, 100000), values in range [0, 50).
+980 out of 50000 test-pairs were in the map (2.0%)
+Total wall-clock time:  6.90 seconds		μs per probe:  137.972 μs
+
+
